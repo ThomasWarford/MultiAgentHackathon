@@ -11,7 +11,7 @@ ARXIV_API_URL = "http://export.arxiv.org/api/query"
 ARXIV_NS = "{http://www.w3.org/2005/Atom}"
 
 
-def fetch_papers_by_author(author_name, max_results=50):
+def fetch_papers_by_author(author_name, max_results=10):
     query = f'au:"{author_name}"'
     params = urllib.parse.urlencode({
         "search_query": query,
