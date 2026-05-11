@@ -226,7 +226,7 @@ class HypothesesAgent:
             ),
             user=rendered,
             response_model=_HypothesesOutput,
-            temperature=0.7,
+            temperature=1.0,
             max_tokens=4096,
         )
         hypotheses = [

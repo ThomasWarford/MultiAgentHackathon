@@ -43,6 +43,9 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "o1": (15.00, 60.00),
 }
 
+# Models that only support the default temperature (1.0).
+_FIXED_TEMPERATURE_MODELS: set[str] = {"gpt-5.5", "o1-mini", "o1"}
+
 
 class CostCeilingExceeded(RuntimeError):
     """Raised when projected or actual spend crosses the configured ceiling."""
@@ -84,7 +87,7 @@ class OpenAIClient:
         system: str,
         user: str,
         response_model: type[T],
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         max_tokens: int = 4096,
     ) -> T:
         if self.spend.usd >= self._ceiling:
@@ -94,6 +97,16 @@ class OpenAIClient:
             )
 
         response_name = response_model.__name__
+
+        # Some models (e.g. gpt-5.5, o1) only support temperature=1.
+        if model in _FIXED_TEMPERATURE_MODELS and temperature != 1.0:
+            log.info(
+                "llm.temperature.clamped",
+                model=model,
+                requested=temperature,
+                effective=1.0,
+            )
+            temperature = 1.0
 
         log.info(
             "llm.call.start",

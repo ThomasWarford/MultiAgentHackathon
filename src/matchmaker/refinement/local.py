@@ -131,8 +131,8 @@ class LocalLLMReviewer:
             system="You are a rigorous adversarial reviewer of research hypotheses.",
             user=prompt,
             response_model=_CritiqueOutput,
-            temperature=0.4,
-            max_tokens=1024,
+            temperature=1.0,
+            max_tokens=4096,
         )
         critique = Critique(
             hypothesis_id=hypothesis.hypothesis_id,
@@ -194,8 +194,8 @@ class LocalLLMRefiner:
             system="You produce concrete, evidence-grounded revisions of research hypotheses.",
             user=prompt,
             response_model=_RefinedOutput,
-            temperature=0.6,
-            max_tokens=2048,
+            temperature=1.0,
+            max_tokens=8192,
         )
         refined = RefinedHypothesis(
             hypothesis_id=hypothesis.hypothesis_id,

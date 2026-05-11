@@ -29,16 +29,20 @@ class Settings(BaseSettings):
     denario_base_url: str = Field(default="", validation_alias="DENARIO_BASE_URL")
     denario_api_key: str = Field(default="", validation_alias="DENARIO_API_KEY")
 
-    # Default to the cheap tier across the board so test runs stay inexpensive.
-    # When you want higher quality (typically for stages 6-8), swap individual
-    # entries to "gpt-4o" — see MODEL_PRICING in agents/llm.py for the full
-    # priced catalogue. Stage rationale:
-    #   - background / extraction / cross_factorial: high-volume fan-out
-    #     (the matrix alone is 9 calls), keep on the cheap tier.
-    #   - hypotheses / refinement / ranking: lower volume, higher leverage —
-    #     candidates for "gpt-4o" once the pipeline is stable.
-    model_background: str = "gpt-5.5"
-    model_extraction: str = "gpt-5.5"
+    # Cost-tiered defaults — cheap models for bulk fan-out, premium for
+    # high-leverage synthesis.  See MODEL_PRICING in agents/llm.py.
+    #
+    # Cheap tier (gpt-4o-mini @ $0.15/$0.60 per 1M tokens):
+    #   - background: 2 calls — straightforward narrative summarisation.
+    #   - extraction: 6 calls (3 dims × 2 researchers) — structured extraction.
+    #
+    # Premium tier (gpt-5.5):
+    #   - cross_factorial: 9 calls (3×3 matrix) — non-obvious connection spotting.
+    #   - hypotheses: 1-2 calls — creative synthesis requiring nuance.
+    #   - refinement: variable (review + refine loops) — adversarial critique.
+    #   - ranking: 1 call — comparative scoring across candidates.
+    model_background: str = "gpt-4o-mini"
+    model_extraction: str = "gpt-4o-mini"
     model_cross_factorial: str = "gpt-5.5"
     model_hypotheses: str = "gpt-5.5"
     model_refinement: str = "gpt-5.5"
