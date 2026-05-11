@@ -12,7 +12,9 @@ An agentic workflow that connects two (or more) researchers and finds good topic
 ## Design
 - Publication scraper
 - Papers -> summary
-- Look for open questions
+  - Methods
+  - Look for open questions
+- Should get across things you wouldn't be able get accross in a conversation / CV.
 
 ### Wishlist
 - Go through references
