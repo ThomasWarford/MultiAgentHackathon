@@ -155,6 +155,16 @@ Run the demo pair already present in `papers/`:
 uv run matchmaker run --a csanyi --b pellegrini
 ```
 
+Or launch the browser interface:
+
+```bash
+uv run matchmaker web
+```
+
+Then open `http://127.0.0.1:8000`, enter two researcher slugs, and submit the
+match. The final report is shown in the page and still written to
+`outputs/report/`.
+
 Useful options:
 
 ```bash
