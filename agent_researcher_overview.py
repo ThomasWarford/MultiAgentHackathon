@@ -17,12 +17,16 @@ load_dotenv()
 
 class ResearcherState(TypedDict):
     name: str
-    papers_text: str
-    context: str        # optional external context from a previous step
+    paper_text: str   # single paper content
+    paper_name: str   # filename stem, used as section header
+    context: str      # optional external context from a previous step
     methods: str
     open_questions: str
     significance: str
     summary: str
+
+
+SECTION_KEYS = ("methods", "open_questions", "significance", "summary")
 
 
 # ---------------------------------------------------------------------------
@@ -31,33 +35,31 @@ class ResearcherState(TypedDict):
 
 METHODS_PROMPT = (
     "You are an expert research analyst. "
-    "Given the following research papers by a single researcher, "
-    "write a structured markdown section titled '## Methods' that identifies "
-    "the core methodological approaches, tools, datasets, and experimental or "
-    "theoretical frameworks this researcher uses across their body of work."
+    "Given the following single research paper, identify the core methodological "
+    "approaches, tools, datasets, and experimental or theoretical frameworks used. "
+    "Write a structured markdown section titled '## Methods'."
 )
 
 OPEN_QUESTIONS_PROMPT = (
     "You are an expert research analyst. "
-    "Given the following research papers, write a structured markdown section "
-    "titled '## Open Questions' that enumerates the key unsolved problems, "
-    "bottlenecks, stated limitations, and future directions the researcher "
-    "explicitly or implicitly surfaces."
+    "Given the following single research paper, enumerate the key unsolved problems, "
+    "bottlenecks, stated limitations, and future directions the authors explicitly "
+    "or implicitly surface. "
+    "Write a structured markdown section titled '## Open Questions'."
 )
 
 SIGNIFICANCE_PROMPT = (
     "You are an expert research analyst. "
-    "Given the following research papers, write a structured markdown section "
-    "titled '## Significance & Stakes' covering the real-world impact, "
-    "scientific importance, and motivating challenges behind this researcher's work."
+    "Given the following single research paper, describe the real-world impact, "
+    "scientific importance, and motivating challenges behind this work. "
+    "Write a structured markdown section titled '## Significance & Stakes'."
 )
 
 SUMMARY_PROMPT = (
     "You are an expert research analyst. "
-    "Given three analytical sections about a researcher's body of work, "
-    "write a concise markdown summary titled '## Summary' (3–5 paragraphs) "
-    "that a collaborator from a different field can quickly read to understand "
-    "who this person is and where collaboration might be fruitful."
+    "Given the following single research paper, write a concise markdown summary "
+    "titled '## Summary' (2–3 paragraphs) that a collaborator from a different "
+    "field can quickly read to understand the contribution and its relevance."
 )
 
 
@@ -80,7 +82,7 @@ def make_section_agent(
         )
         messages = [
             SystemMessage(content=system_prompt + context_block),
-            HumanMessage(content=state["papers_text"]),
+            HumanMessage(content=state["paper_text"]),
         ]
         return {section_key: llm.invoke(messages).content}
 
@@ -89,55 +91,32 @@ def make_section_agent(
 
 
 # ---------------------------------------------------------------------------
-# Summary node (reads section outputs, not raw papers)
+# Graph builder — runs once per paper
 # ---------------------------------------------------------------------------
 
-def summary_node(state: ResearcherState) -> dict:
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
-    context_block = (
-        f"\n\n## Additional context\n{state['context']}" if state["context"] else ""
-    )
-    synthesis = (
-        f"{state['methods']}\n\n"
-        f"{state['open_questions']}\n\n"
-        f"{state['significance']}"
-    )
-    messages = [
-        SystemMessage(content=SUMMARY_PROMPT + context_block),
-        HumanMessage(content=synthesis),
-    ]
-    return {"summary": llm.invoke(messages).content}
-
-
-# ---------------------------------------------------------------------------
-# Graph builder
-# ---------------------------------------------------------------------------
-
-def build_graph(sequential: bool = False) -> object:
-    methods_node = make_section_agent("methods", METHODS_PROMPT)
-    open_questions_node = make_section_agent("open_questions", OPEN_QUESTIONS_PROMPT)
-    significance_node = make_section_agent("significance", SIGNIFICANCE_PROMPT)
+def build_paper_graph(sequential: bool = False) -> object:
+    prompts = {
+        "methods": METHODS_PROMPT,
+        "open_questions": OPEN_QUESTIONS_PROMPT,
+        "significance": SIGNIFICANCE_PROMPT,
+        "summary": SUMMARY_PROMPT,
+    }
 
     graph = StateGraph(ResearcherState)
-    graph.add_node("methods", methods_node)
-    graph.add_node("open_questions", open_questions_node)
-    graph.add_node("significance", significance_node)
-    graph.add_node("summary", summary_node)
+    for key, prompt in prompts.items():
+        graph.add_node(key, make_section_agent(key, prompt))
 
     if sequential:
         graph.add_edge(START, "methods")
         graph.add_edge("methods", "open_questions")
         graph.add_edge("open_questions", "significance")
         graph.add_edge("significance", "summary")
+        graph.add_edge("summary", END)
     else:
-        graph.add_edge(START, "methods")
-        graph.add_edge(START, "open_questions")
-        graph.add_edge(START, "significance")
-        graph.add_edge("methods", "summary")
-        graph.add_edge("open_questions", "summary")
-        graph.add_edge("significance", "summary")
+        for key in SECTION_KEYS:
+            graph.add_edge(START, key)
+            graph.add_edge(key, END)
 
-    graph.add_edge("summary", END)
     return graph.compile()
 
 
@@ -150,29 +129,34 @@ def run_researcher_overview(
     context: str = "",
     sequential: bool = False,
 ) -> None:
-    papers_dir = Path("papers") / name
-    papers_text = "\n\n---\n\n".join(
-        p.read_text(encoding="utf-8") for p in sorted(papers_dir.glob("*.md"))
-    )
-
-    initial_state: ResearcherState = {
-        "name": name,
-        "papers_text": papers_text,
-        "context": context,
-        "methods": "",
-        "open_questions": "",
-        "significance": "",
-        "summary": "",
-    }
-
-    app = build_graph(sequential=sequential)
-    final_state = app.invoke(initial_state)
-
+    papers = sorted((Path("papers") / name).glob("*.md"))
     out_dir = Path("researcher_overview") / name
     out_dir.mkdir(parents=True, exist_ok=True)
-    for key in ("methods", "open_questions", "significance", "summary"):
-        (out_dir / f"{key}.md").write_text(final_state[key], encoding="utf-8")
-        print(f"  wrote researcher_overview/{name}/{key}.md")
+
+    for key in SECTION_KEYS:
+        (out_dir / f"{key}.md").write_text("", encoding="utf-8")
+
+    app = build_paper_graph(sequential=sequential)
+
+    for paper_path in papers:
+        print(f"  processing {paper_path.name}...")
+        state: ResearcherState = {
+            "name": name,
+            "paper_text": paper_path.read_text(encoding="utf-8"),
+            "paper_name": paper_path.stem,
+            "context": context,
+            "methods": "",
+            "open_questions": "",
+            "significance": "",
+            "summary": "",
+        }
+        result = app.invoke(state)
+
+        for key in SECTION_KEYS:
+            with (out_dir / f"{key}.md").open("a", encoding="utf-8") as f:
+                f.write(f"\n\n### {paper_path.stem}\n\n{result[key]}")
+
+        print(f"    updated all sections")
 
 
 # ---------------------------------------------------------------------------
