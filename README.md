@@ -1,13 +1,13 @@
-# 🤖 MultiAgentHackathon
+# Researcher Matchmaking / Collaboration Assistant
 
-> A brief one-line description of your project.
+## Goal / Vision
+An agentic workflow that connects two (or more) researchers and finds good topics for collaboration.
 
----
 
-## 📖 Overview
-
-Provide a 2–3 sentence overview of what this project does, the problem it solves, and why it matters.
-
+## Use Cases
+- Early career researchers in new department: run for everyone in the department.
+- Get around the jargon that makes finding common ground difficult.
+- Extract open questions: answer with LLM and find other researchers who can help.
 ---
 
 ## 🏗️ Architecture
