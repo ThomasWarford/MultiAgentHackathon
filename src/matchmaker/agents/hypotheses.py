@@ -51,6 +51,25 @@ class _HypothesesOutput(BaseModel):
     hypotheses: list[_HypothesisDraft] = Field(description="3-7 candidate hypotheses.")
 
 
+class _DuplicateGroup(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    keep_hypothesis_id: str = Field(description="The best representative to keep.")
+    duplicate_hypothesis_ids: list[str] = Field(
+        description="Other hypothesis_ids that are semantically the same."
+    )
+    rationale: str = Field(
+        description="Brief reason these hypotheses express the same underlying claim."
+    )
+
+
+class _HypothesisFilterOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    keep_hypothesis_ids: list[str] = Field(
+        description="Unique hypothesis_ids to keep, in preferred output order."
+    )
+    duplicate_groups: list[_DuplicateGroup] = Field(default_factory=list)
+
+
 def _format_bullets(items: list[str], empty: str = "(none provided)") -> str:
     if not items:
         return empty
@@ -70,10 +89,102 @@ def _format_matrix(matrix: CrossFactorialMatrix) -> str:
     return "\n\n".join(parts)
 
 
+def _format_hypotheses_for_filter(hypotheses: list[Hypothesis]) -> str:
+    parts: list[str] = []
+    for h in hypotheses:
+        leverages = ", ".join(f"{a} x {b}" for a, b in h.leverages_cells) or "(none)"
+        addresses = ", ".join(h.addresses_prompts) or "(none)"
+        parts.append(
+            f"## {h.hypothesis_id}\n"
+            f"Title: {h.title}\n"
+            f"Statement: {h.statement}\n"
+            f"Mechanism: {h.mechanism}\n"
+            f"Leverages: {leverages}\n"
+            f"Addresses: {addresses}\n"
+            f"Confidence: {h.confidence:.2f}"
+        )
+    return "\n\n".join(parts)
+
+
+def _filter_by_keep_ids(
+    hypotheses: list[Hypothesis], keep_hypothesis_ids: list[str]
+) -> list[Hypothesis]:
+    by_id = {h.hypothesis_id: h for h in hypotheses}
+    unique: list[Hypothesis] = []
+    seen: set[str] = set()
+    for hypothesis_id in keep_hypothesis_ids:
+        if hypothesis_id in by_id and hypothesis_id not in seen:
+            unique.append(by_id[hypothesis_id])
+            seen.add(hypothesis_id)
+    return unique
+
+
+def _drop_duplicate_ids(hypotheses: list[Hypothesis]) -> list[Hypothesis]:
+    unique: list[Hypothesis] = []
+    seen: set[str] = set()
+    for hypothesis in hypotheses:
+        if hypothesis.hypothesis_id in seen:
+            continue
+        unique.append(hypothesis)
+        seen.add(hypothesis.hypothesis_id)
+    return unique
+
+
+class HypothesisFilterAgent:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
+        self._llm = llm
+        self._model = model
+
+    async def run(self, hypotheses: list[Hypothesis]) -> list[Hypothesis]:
+        hypotheses = _drop_duplicate_ids(hypotheses)
+        if len(hypotheses) <= 1:
+            return hypotheses
+
+        log.info("agent.hypothesis_filter.start", n_hypotheses=len(hypotheses))
+        out = await self._llm.structured(
+            model=self._model,
+            system=(
+                "You are a precise research-hypothesis deduplication agent. "
+                "You identify semantic duplicates, not merely matching wording."
+            ),
+            user=(
+                "Filter this candidate set to unique collaborative hypotheses.\n\n"
+                "Treat hypotheses as duplicates when they propose the same underlying "
+                "falsifiable claim and collaboration mechanism, even if the wording, "
+                "title, or slug differs. Keep separate hypotheses that share a topic "
+                "but test a different claim, require a different dataset/experiment, "
+                "or have a materially different mechanism.\n\n"
+                "Prefer keeping the stronger, more specific, more falsifiable member "
+                "of each duplicate group. Return only existing hypothesis_ids.\n\n"
+                f"{_format_hypotheses_for_filter(hypotheses)}"
+            ),
+            response_model=_HypothesisFilterOutput,
+            temperature=0.0,
+            max_tokens=2048,
+        )
+
+        unique = _filter_by_keep_ids(hypotheses, out.keep_hypothesis_ids)
+        if not unique:
+            log.info(
+                "agent.hypothesis_filter.invalid_output",
+                keep_hypothesis_ids=out.keep_hypothesis_ids,
+            )
+            return hypotheses
+
+        log.info(
+            "agent.hypothesis_filter.done",
+            n_hypotheses=len(unique),
+            n_duplicates_dropped=len(hypotheses) - len(unique),
+            n_duplicate_groups=len(out.duplicate_groups),
+        )
+        return unique
+
+
 class HypothesesAgent:
     def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
+        self._filter = HypothesisFilterAgent(llm=llm, model=model)
 
     async def run(
         self,
@@ -130,8 +241,10 @@ class HypothesesAgent:
             )
             for d in out.hypotheses
         ]
+        unique_hypotheses = await self._filter.run(hypotheses)
         log.info(
             "agent.hypotheses.done",
-            n_hypotheses=len(hypotheses),
+            n_hypotheses=len(unique_hypotheses),
+            n_duplicates_dropped=len(hypotheses) - len(unique_hypotheses),
         )
-        return hypotheses
+        return unique_hypotheses

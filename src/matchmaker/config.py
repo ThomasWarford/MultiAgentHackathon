@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     cost_ceiling_usd: float = 5.0
     max_iterations: int = 3
-    refinement_backend: RefinementBackend = "mock"
+    refinement_backend: RefinementBackend = "local"
     on_protocol_error: ProtocolErrorPolicy = "fallback_to_local"
 
     log_level: str = "INFO"

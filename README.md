@@ -1,84 +1,57 @@
-# Researcher Matchmaking / Collaboration Assistant
+# Matchmaker
 
-## Goal / Vision
-An agentic workflow that connects two (or more) researchers and finds good topics for collaboration.
+Multi-agent research matchmaking workflow for finding concrete collaboration ideas between two researchers.
 
+Matchmaker ingests local publication corpora, extracts each researcher's methods, open questions, and stakes, builds a 3x3 cross-factorial connection matrix, synthesizes candidate collaboration hypotheses, reviews/refines them, and writes a ranked Markdown report plus per-stage JSON artifacts.
 
-## Use Cases
-- Early career researchers in new department: run for everyone in the department.
-- Get around the jargon that makes finding common ground difficult.
-- Extract open questions: answer with LLM and find other researchers who can help.
----
-## Design
-- Publication scraper
-- Papers -> summary
-  - Methods
-  - Look for open questions
-- Should get across things you wouldn't be able get accross in a conversation / CV.
+## What It Does
 
-### Wishlist
-- Go through references
-- Multiple researchers (by department, ect.)
-- Conversation recordings
-- Researcher prompts
+- Reads pre-converted Markdown papers from `papers/<researcher_id>/*.md`.
+- Reads explicit researcher priorities from `prompts_input/<researcher_id>.md`.
+- Uses OpenAI structured outputs for the background, extraction, matrix, and hypothesis stages.
+- Runs a bounded review/refine loop with one of three refinement backends: `mock`, `local`, or `denario`.
+- Tracks estimated model spend and stops before exceeding `MATCHMAKER_COST_CEILING_USD`.
+- Writes reproducible artifacts under `outputs/` and a final report under `outputs/report/`.
 
+## Pipeline
 
-## 🏗️ Architecture
-
-Describe the high-level multi-agent architecture here. Include a diagram if possible.
-
+```text
+papers/<id>/*.md + prompts_input/<id>.md
+        |
+        v
+LocalCorpusSource + prompt loader
+        |
+        v
+Researcher backgrounds
+        |
+        v
+Methods / open questions / stakes extraction
+        |
+        v
+3x3 cross-factorial connection matrix
+        |
+        v
+Collaboration hypothesis generation
+        |
+        v
+Review -> refine loop
+        |
+        v
+Ranking + final Markdown report
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Agent A    │────▶│ Orchestrator│────▶│  Agent B    │
-└─────────────┘     └─────────────┘     └─────────────┘
-```
 
-### Agents
+The LangGraph DAG is linear from ingestion through ranking. The adaptive behavior is inside the refinement node, where each hypothesis gets its own bounded asynchronous review/refine loop.
 
-| Agent | Role | Model / Framework |
-|-------|------|-------------------|
-| Agent A | Description | e.g. GPT-4o |
-| Agent B | Description | e.g. Claude 3.5 |
-| Orchestrator | Coordinates agents | e.g. LangGraph |
+## Requirements
 
----
+- Python 3.11+
+- `uv` recommended, because the repository includes `uv.lock`
+- An `OPENAI_API_KEY` for real pipeline runs
 
-## ✨ Features
-
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.10+
-- (List other dependencies, e.g. Docker, Node.js, etc.)
-
-### Installation
+## Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-username>/MultiAgentHackathon.git
-cd MultiAgentHackathon
-
-# Create and activate a virtual environment
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS / Linux
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Environment Variables
-
-Copy the example env file and fill in your API keys:
-
-```bash
+uv sync --dev
 cp .env.example .env
 ```
 
@@ -109,67 +82,172 @@ LLM call by `OpenAIClient`, so a runaway loop terminates predictably.
 ### Running the Project
 
 ```bash
-python main.py
+OPENAI_API_KEY=...
+MATCHMAKER_REFINEMENT_BACKEND=local
+MATCHMAKER_COST_CEILING_USD=5.0
+MATCHMAKER_MAX_ITERATIONS=3
 ```
 
----
+`DENARIO_BASE_URL` and `DENARIO_API_KEY` are only needed when `MATCHMAKER_REFINEMENT_BACKEND=denario`.
 
-## 📁 Project Structure
+## Inputs
 
+### Papers
+
+Each researcher needs a directory under `papers/`:
+
+```text
+papers/
+  csanyi/
+    paper-one.md
+    paper-two.md
+  pellegrini/
+    paper-one.md
+    paper-two.md
 ```
-MultiAgentHackathon/
-├── agents/             # Individual agent definitions
-├── tools/              # Shared tools / utilities used by agents
-├── orchestrator/       # Orchestration logic
-├── tests/              # Unit & integration tests
-├── .env.example        # Example environment variable file
-├── requirements.txt    # Python dependencies
-└── main.py             # Entry point
-```
 
----
-
-## 🧪 Testing
+Each `.md` file becomes one publication. PDFs can be converted with:
 
 ```bash
-pytest tests/
+uv run python utils/pdf_to_markdown.py
 ```
 
----
+### Researcher Prompts
 
-## 🛣️ Roadmap
+Create one prompt file per researcher:
 
-- [ ] Milestone 1 – MVP demo
-- [ ] Milestone 2 – Add memory / persistence
-- [ ] Milestone 3 – Deploy to cloud
+```text
+prompts_input/
+  csanyi.md
+  pellegrini.md
+```
 
----
+Minimum format:
 
-## 🤝 Contributing
+```markdown
+## Current focus
+What this researcher is actively trying to do now.
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Commit your changes: `git commit -m "feat: add my feature"`
-4. Push and open a Pull Request
+## Recent milestones
+- Optional bullet
+- Optional bullet
 
----
+## Blockers
+- Optional blocker
 
-## 📄 License
+## Notes
+Optional free text.
+```
 
-This project is licensed under the [MIT License](LICENSE).
+`## Current focus` is required. Unknown `##` sections are preserved as extra free text.
 
----
+## Run
 
-## 👥 Team
+Check configuration:
 
-| Name | Role | GitHub |
-|------|------|--------|
-| Your Name | Lead Developer | [@handle](https://github.com/handle) |
+```bash
+uv run matchmaker doctor
+```
 
----
+Run the demo pair already present in `papers/`:
 
-## 🙏 Acknowledgements
+```bash
+uv run matchmaker run --a csanyi --b pellegrini
+```
 
-- [LangChain](https://github.com/langchain-ai/langchain)
-- [LangGraph](https://github.com/langchain-ai/langgraph)
-- Any other libraries, datasets, or inspirations
+Useful options:
+
+```bash
+uv run matchmaker run \
+  --a csanyi \
+  --b pellegrini \
+  --prompts-dir prompts_input \
+  --papers-dir papers \
+  --outputs-dir outputs \
+  --backend local \
+  --run-id demo
+```
+
+Available refinement backends:
+
+- `mock`: deterministic reviewer/refiner/ranker implementations for smoke testing refinement plumbing.
+- `local`: OpenAI-backed reviewer, refiner, and ranker.
+- `denario`: external Denario reviewer, refiner, and ranker using `DENARIO_BASE_URL` and `DENARIO_API_KEY`.
+
+## Outputs
+
+A run writes JSON artifacts to:
+
+```text
+outputs/
+  01_publications/
+  02_backgrounds/
+  03_dimensional/
+  04_matrix/
+  05_hypotheses/
+  06_critiques/
+  07_refined/
+  08_ranking/
+  report/<run_id>.md
+```
+
+The final report contains the cross-factorial matrix, ranked collaboration hypotheses, revision notes, and ranking methodology.
+
+## Configuration
+
+Settings are loaded from environment variables and `.env` via `src/matchmaker/config.py`.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | empty | Required for OpenAI-backed stages. |
+| `DENARIO_BASE_URL` | empty | Required for `denario` backend. |
+| `DENARIO_API_KEY` | empty | Required for `denario` backend. |
+| `MATCHMAKER_REFINEMENT_BACKEND` | `local` | `mock`, `local`, or `denario`. |
+| `MATCHMAKER_COST_CEILING_USD` | `5.0` | Stops further LLM calls once projected spend exceeds the ceiling. |
+| `MATCHMAKER_MAX_ITERATIONS` | `3` | Max review/refine iterations per hypothesis. |
+| `MATCHMAKER_LOG_LEVEL` | `INFO` | Structured logging level. |
+
+Model defaults live in `Settings`:
+
+| Setting | Stage | Default |
+| --- | --- | --- |
+| `model_background` | Researcher background synthesis | `gpt-4o-mini` |
+| `model_extraction` | Methods/questions/stakes extraction | `gpt-4o-mini` |
+| `model_cross_factorial` | 3x3 connection matrix | `gpt-4o-mini` |
+| `model_hypotheses` | Hypothesis synthesis | `gpt-4o-mini` |
+| `model_refinement` | Review/refine loop | `gpt-4o-mini` |
+| `model_ranking` | Final ranking | `gpt-4o-mini` |
+
+Pricing assumptions are defined in `src/matchmaker/agents/llm.py`.
+
+## Project Structure
+
+```text
+src/matchmaker/
+  agents/          OpenAI-backed extraction and synthesis agents
+  ingestion/       Local paper corpus and prompt loading
+  io/              Artifact and report writers
+  orchestrator/    LangGraph wiring and node functions
+  prompts/         Prompt templates for each stage
+  refinement/      Mock, local OpenAI, and Denario refinement stacks
+  schemas/         Pydantic state and artifact schemas
+  cli.py           Typer CLI entry point
+tests/             Unit and smoke tests
+utils/             PDF conversion utilities
+```
+
+## Testing
+
+```bash
+uv run pytest
+```
+
+The graph smoke test uses a mocked OpenAI client, so it exercises orchestration and artifact writing without network calls.
+
+## Development Notes
+
+- The installed console script is `matchmaker`.
+- The default `papers_dir` is `papers`.
+- The default `prompts_input_dir` is `prompts_input`.
+- The default `outputs_dir` is `outputs`.
+- `ARCHITECURE.md` contains a more detailed architecture handoff note.

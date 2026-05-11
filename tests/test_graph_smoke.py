@@ -24,6 +24,7 @@ from matchmaker.agents.cross_factorial import _CellOutput
 from matchmaker.agents.extraction import _ItemsOutput
 from matchmaker.agents.hypotheses import (
     _CellRef,
+    _HypothesisFilterOutput,
     _HypothesesOutput,
     _HypothesisDraft,
 )
@@ -105,19 +106,34 @@ class _MockedOpenAIClient(OpenAIClient):
                 confidence=0.6,
             )
         if name == "_HypothesesOutput":
+            statements = [
+                "Force-field uncertainty predicts molecular signatures of post-fire carbon persistence.",
+                "Remote-sensing fire histories benchmark carbon-loss estimates across dryland sites.",
+                "Active-learning sampling reduces uncertainty in soil organic matter simulations.",
+            ]
+            mechanisms = [
+                "Train models on representative soil fragments and validate against fire treatment data.",
+                "Compare satellite burn histories with measured soil carbon changes and model residuals.",
+                "Select new molecular configurations from high-uncertainty soil samples for targeted calculations.",
+            ]
             return _HypothesesOutput(
                 hypotheses=[
                     _HypothesisDraft(
                         hypothesis_id=f"h{i}",
                         title=f"Hypothesis {i}",
-                        statement="A claim.",
-                        mechanism="A mechanism.",
+                        statement=statements[i],
+                        mechanism=mechanisms[i],
                         leverages=[_CellRef(dim_a="methods", dim_b="stakes")],
                         addresses_prompts=["csanyi", "pellegrini"],
                         confidence=0.5 + 0.1 * i,
                     )
                     for i in range(3)
                 ]
+            )
+        if name == "_HypothesisFilterOutput":
+            return _HypothesisFilterOutput(
+                keep_hypothesis_ids=["h0", "h1", "h2"],
+                duplicate_groups=[],
             )
 
         raise AssertionError(f"Unmocked response_model: {name}")
