@@ -9,7 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from matchmaker.agents._corpus import format_publications_block
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.logging import get_logger
 from matchmaker.prompts import render
 from matchmaker.schemas import ResearcherBackground, ResearcherProfile
@@ -27,7 +27,7 @@ class _BackgroundOutput(BaseModel):
 
 
 class ResearcherBackgroundAgent:
-    def __init__(self, llm: AnthropicClient, model: str) -> None:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
 

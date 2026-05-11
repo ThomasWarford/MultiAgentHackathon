@@ -1,8 +1,9 @@
-"""Shared Anthropic client.
+"""Shared OpenAI client.
 
-Every Stage 1-6 agent calls `AnthropicClient.structured(...)` with a Pydantic
+Every Stage 1-6 agent calls `OpenAIClient.structured(...)` with a Pydantic
 response_model. The client:
-- forces structured output via tool-use bound to the model's JSON schema,
+- forces structured output via OpenAI's native structured outputs
+  (`chat.completions.parse` with response_format=BaseModel),
 - updates a shared TokenSpend tracker after each call,
 - raises CostCeilingExceeded before issuing a call that would push spend over
   the configured ceiling, so a runaway refinement loop terminates predictably,
@@ -14,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TypeVar
 
-from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from matchmaker.logging import get_logger
@@ -24,11 +25,19 @@ T = TypeVar("T", bound=BaseModel)
 log = get_logger(__name__)
 
 
-# USD per 1M tokens (ballpark; tune per current Anthropic pricing).
+# USD per 1M tokens (OpenAI public pricing; tune as their pricing evolves).
+# Tiers are roughly: nano/mini = cheap (testing), full = expensive (production).
 MODEL_PRICING: dict[str, tuple[float, float]] = {
-    "claude-opus-4-7": (15.0, 75.0),
-    "claude-sonnet-4-6": (3.0, 15.0),
-    "claude-haiku-4-5-20251001": (1.0, 5.0),
+    # Cheap tier — use for development, testing, bulk fan-out (e.g. the 9-cell
+    # cross-factorial matrix).
+    "gpt-4o-mini": (0.15, 0.60),
+    # Mid/high tier — use for the synthesis & refinement stages once you trust
+    # the pipeline and want better reasoning quality.
+    "gpt-4o": (2.50, 10.00),
+    # Reasoning tier — slow and expensive; only worth it for final ranking
+    # against a small candidate set.
+    "o1-mini": (3.00, 12.00),
+    "o1": (15.00, 60.00),
 }
 
 
@@ -51,7 +60,7 @@ class TokenSpend:
         return delta
 
 
-class AnthropicClient:
+class OpenAIClient:
     def __init__(
         self,
         *,
@@ -60,8 +69,8 @@ class AnthropicClient:
         spend: TokenSpend | None = None,
     ) -> None:
         if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY is empty; set it in .env.")
-        self._client = AsyncAnthropic(api_key=api_key)
+            raise ValueError("OPENAI_API_KEY is empty; set it in .env.")
+        self._client = AsyncOpenAI(api_key=api_key)
         self._ceiling = cost_ceiling_usd
         self.spend = spend or TokenSpend()
 
@@ -81,48 +90,54 @@ class AnthropicClient:
                 f"refusing further LLM calls."
             )
 
-        tool_name = response_model.__name__
-        tool = {
-            "name": tool_name,
-            "description": (response_model.__doc__ or f"Return a {tool_name}.").strip(),
-            "input_schema": response_model.model_json_schema(),
-        }
+        response_name = response_model.__name__
 
         log.info(
             "llm.call.start",
             model=model,
-            response_model=tool_name,
+            response_model=response_name,
             spend_usd=round(self.spend.usd, 4),
             temperature=temperature,
         )
 
-        response = await self._client.messages.create(
+        response = await self._client.beta.chat.completions.parse(
             model=model,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-            tools=[tool],
-            tool_choice={"type": "tool", "name": tool_name},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            response_format=response_model,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
         )
 
         usage = response.usage
-        delta = self.spend.add(model, usage.input_tokens, usage.output_tokens)
+        input_tokens = getattr(usage, "prompt_tokens", 0) if usage else 0
+        output_tokens = getattr(usage, "completion_tokens", 0) if usage else 0
+        delta = self.spend.add(model, input_tokens, output_tokens)
 
-        for block in response.content:
-            if getattr(block, "type", None) == "tool_use" and block.name == tool_name:
-                parsed = response_model.model_validate(block.input)
-                log.info(
-                    "llm.call.done",
-                    model=model,
-                    response_model=tool_name,
-                    input_tokens=usage.input_tokens,
-                    output_tokens=usage.output_tokens,
-                    delta_usd=round(delta, 4),
-                    spend_usd=round(self.spend.usd, 4),
-                )
-                return parsed
+        choice = response.choices[0]
+        message = choice.message
 
-        raise RuntimeError(
-            f"Expected tool_use block named {tool_name!r} in Anthropic response."
+        if getattr(message, "refusal", None):
+            raise RuntimeError(
+                f"OpenAI refused to produce {response_name!r}: {message.refusal}"
+            )
+
+        parsed = message.parsed
+        if parsed is None:
+            raise RuntimeError(
+                f"OpenAI returned no parsed object for {response_name!r}; "
+                f"finish_reason={choice.finish_reason!r}."
+            )
+
+        log.info(
+            "llm.call.done",
+            model=model,
+            response_model=response_name,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            delta_usd=round(delta, 4),
+            spend_usd=round(self.spend.usd, 4),
         )
+        return parsed

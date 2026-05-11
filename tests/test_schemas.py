@@ -88,13 +88,13 @@ class TestRoundTrip:
                     hypothesis_id="h1",
                     iteration=0,
                     severity="suggest",
-                    reviewer_id="local-claude",
+                    reviewer_id="local-openai",
                 ),
                 Critique(
                     hypothesis_id="h1",
                     iteration=1,
                     severity="accept",
-                    reviewer_id="local-claude",
+                    reviewer_id="local-openai",
                 ),
             ],
         )

@@ -20,7 +20,7 @@ class Critique(BaseModel):
     strengths: list[str] = Field(default_factory=list)
     weaknesses: list[str] = Field(default_factory=list)
     suggested_revisions: list[str] = Field(default_factory=list)
-    reviewer_id: str = Field(description="e.g. 'local-claude', 'denario-v1'.")
+    reviewer_id: str = Field(description="e.g. 'local-openai', 'denario-v1'.")
 
 
 class CritiqueHistory(BaseModel):

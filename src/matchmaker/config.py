@@ -25,16 +25,24 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
+    openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
     denario_base_url: str = Field(default="", validation_alias="DENARIO_BASE_URL")
     denario_api_key: str = Field(default="", validation_alias="DENARIO_API_KEY")
 
-    model_background: str = "claude-sonnet-4-6"
-    model_extraction: str = "claude-haiku-4-5-20251001"
-    model_cross_factorial: str = "claude-haiku-4-5-20251001"
-    model_hypotheses: str = "claude-opus-4-7"
-    model_refinement: str = "claude-opus-4-7"
-    model_ranking: str = "claude-opus-4-7"
+    # Default to the cheap tier across the board so test runs stay inexpensive.
+    # When you want higher quality (typically for stages 6-8), swap individual
+    # entries to "gpt-4o" — see MODEL_PRICING in agents/llm.py for the full
+    # priced catalogue. Stage rationale:
+    #   - background / extraction / cross_factorial: high-volume fan-out
+    #     (the matrix alone is 9 calls), keep on the cheap tier.
+    #   - hypotheses / refinement / ranking: lower volume, higher leverage —
+    #     candidates for "gpt-4o" once the pipeline is stable.
+    model_background: str = "gpt-4o-mini"
+    model_extraction: str = "gpt-4o-mini"
+    model_cross_factorial: str = "gpt-4o-mini"
+    model_hypotheses: str = "gpt-4o-mini"
+    model_refinement: str = "gpt-4o-mini"
+    model_ranking: str = "gpt-4o-mini"
 
     cost_ceiling_usd: float = 5.0
     max_iterations: int = 3

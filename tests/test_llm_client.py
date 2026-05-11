@@ -1,7 +1,7 @@
 """Unit tests for the LLM client wrapper.
 
 These exercise the cost accounting and structured-output decoding without
-calling the network — the Anthropic client is monkey-patched.
+calling the network — the OpenAI client is monkey-patched.
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ from pydantic import BaseModel
 
 from matchmaker.agents.llm import (
     MODEL_PRICING,
-    AnthropicClient,
     CostCeilingExceeded,
+    OpenAIClient,
     TokenSpend,
 )
 
@@ -25,54 +25,73 @@ class Echo(BaseModel):
     word: str
 
 
-class FakeMessages:
-    def __init__(self, tool_input: dict, in_tok: int = 100, out_tok: int = 50) -> None:
-        self._input = tool_input
+class FakeChatCompletions:
+    def __init__(
+        self,
+        parsed: BaseModel,
+        in_tok: int = 100,
+        out_tok: int = 50,
+    ) -> None:
+        self._parsed = parsed
         self._in = in_tok
         self._out = out_tok
 
-    async def create(self, **kwargs):  # noqa: ANN003 — mirror SDK signature
-        tool_name = kwargs["tools"][0]["name"]
+    async def parse(self, **kwargs):  # noqa: ANN003 — mirror SDK signature
         return SimpleNamespace(
-            content=[
-                SimpleNamespace(type="tool_use", name=tool_name, input=self._input),
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(parsed=self._parsed, refusal=None),
+                    finish_reason="stop",
+                )
             ],
-            usage=SimpleNamespace(input_tokens=self._in, output_tokens=self._out),
+            usage=SimpleNamespace(
+                prompt_tokens=self._in, completion_tokens=self._out
+            ),
         )
 
 
-class FakeAnthropic:
-    def __init__(self, tool_input: dict, in_tok: int = 100, out_tok: int = 50) -> None:
-        self.messages = FakeMessages(tool_input, in_tok, out_tok)
+class FakeOpenAI:
+    """Mirrors the bits of AsyncOpenAI that OpenAIClient.structured touches."""
+
+    def __init__(
+        self,
+        parsed: BaseModel,
+        in_tok: int = 100,
+        out_tok: int = 50,
+    ) -> None:
+        completions = FakeChatCompletions(parsed, in_tok, out_tok)
+        self.beta = SimpleNamespace(
+            chat=SimpleNamespace(completions=completions)
+        )
 
 
 class TestTokenSpend:
-    def test_haiku_pricing_math(self) -> None:
+    def test_mini_pricing_math(self) -> None:
         spend = TokenSpend()
-        delta = spend.add("claude-haiku-4-5-20251001", 1_000_000, 1_000_000)
-        # (1M * $1 + 1M * $5) / 1M = $6
-        assert pytest.approx(delta, rel=1e-6) == 6.0
-        assert spend.usd == pytest.approx(6.0)
+        delta = spend.add("gpt-4o-mini", 1_000_000, 1_000_000)
+        # (1M * $0.15 + 1M * $0.60) / 1M = $0.75
+        assert pytest.approx(delta, rel=1e-6) == 0.75
+        assert spend.usd == pytest.approx(0.75)
         assert spend.calls == 1
-        assert spend.by_model["claude-haiku-4-5-20251001"] == pytest.approx(6.0)
+        assert spend.by_model["gpt-4o-mini"] == pytest.approx(0.75)
 
     def test_unknown_model_uses_fallback(self) -> None:
         spend = TokenSpend()
-        delta = spend.add("claude-unknown", 1_000_000, 0)
+        delta = spend.add("gpt-unknown", 1_000_000, 0)
         assert delta == pytest.approx(5.0)  # fallback input rate
 
 
-class TestAnthropicClient:
+class TestOpenAIClient:
     def test_constructor_requires_api_key(self) -> None:
         with pytest.raises(ValueError):
-            AnthropicClient(api_key="", cost_ceiling_usd=1.0)
+            OpenAIClient(api_key="", cost_ceiling_usd=1.0)
 
-    async def test_structured_parses_tool_use_and_tracks_spend(self, monkeypatch) -> None:
-        client = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
-        client._client = FakeAnthropic({"word": "hello"})  # type: ignore[assignment]
+    async def test_structured_parses_response_and_tracks_spend(self) -> None:
+        client = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
+        client._client = FakeOpenAI(Echo(word="hello"))  # type: ignore[assignment]
 
         out = await client.structured(
-            model="claude-haiku-4-5-20251001",
+            model="gpt-4o-mini",
             system="sys",
             user="usr",
             response_model=Echo,
@@ -81,13 +100,15 @@ class TestAnthropicClient:
         assert client.spend.calls == 1
         assert client.spend.usd > 0
 
-    async def test_cost_ceiling_blocks_further_calls(self, monkeypatch) -> None:
-        client = AnthropicClient(api_key="dummy", cost_ceiling_usd=0.0001)
-        client._client = FakeAnthropic({"word": "x"}, in_tok=1_000_000, out_tok=1_000_000)
+    async def test_cost_ceiling_blocks_further_calls(self) -> None:
+        client = OpenAIClient(api_key="dummy", cost_ceiling_usd=0.0001)
+        client._client = FakeOpenAI(  # type: ignore[assignment]
+            Echo(word="x"), in_tok=1_000_000, out_tok=1_000_000
+        )
 
         # First call goes through (spend starts at 0).
         await client.structured(
-            model="claude-haiku-4-5-20251001",
+            model="gpt-4o-mini",
             system="s",
             user="u",
             response_model=Echo,
@@ -95,7 +116,7 @@ class TestAnthropicClient:
         # Second call must trip the breaker since spend is now well over ceiling.
         with pytest.raises(CostCeilingExceeded):
             await client.structured(
-                model="claude-haiku-4-5-20251001",
+                model="gpt-4o-mini",
                 system="s",
                 user="u",
                 response_model=Echo,

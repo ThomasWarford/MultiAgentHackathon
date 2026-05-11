@@ -7,7 +7,7 @@ add a branch here + a module that satisfies the Protocols.
 
 from __future__ import annotations
 
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.config import Settings
 from matchmaker.refinement.denario import DenarioRanker, DenarioRefiner, DenarioReviewer
 from matchmaker.refinement.local import LocalLLMRanker, LocalLLMRefiner, LocalLLMReviewer
@@ -34,12 +34,12 @@ class RefinementStack:
 def build_refinement_stack(
     settings: Settings,
     *,
-    llm: AnthropicClient | None = None,
+    llm: OpenAIClient | None = None,
 ) -> RefinementStack:
     """Build the refinement triple matching `settings.refinement_backend`.
 
     `llm` is required when backend == "local" (LocalLLM* implementations need
-    a shared AnthropicClient for cost tracking). It is ignored otherwise.
+    a shared OpenAIClient for cost tracking). It is ignored otherwise.
     """
     backend = settings.refinement_backend
     if backend == "mock":
@@ -47,7 +47,7 @@ def build_refinement_stack(
     if backend == "local":
         if llm is None:
             raise ValueError(
-                "refinement_backend='local' requires an AnthropicClient via the `llm` arg."
+                "refinement_backend='local' requires an OpenAIClient via the `llm` arg."
             )
         return RefinementStack(
             LocalLLMReviewer(llm, settings.model_refinement),

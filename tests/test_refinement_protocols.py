@@ -140,15 +140,15 @@ class TestFactory:
         from matchmaker.config import Settings
         from matchmaker.refinement import build_refinement_stack
 
-        with pytest.raises(ValueError, match="AnthropicClient"):
+        with pytest.raises(ValueError, match="OpenAIClient"):
             build_refinement_stack(Settings(refinement_backend="local"))
 
     def test_local_backend_builds_stack_with_llm(self) -> None:
-        from matchmaker.agents.llm import AnthropicClient
+        from matchmaker.agents.llm import OpenAIClient
         from matchmaker.config import Settings
         from matchmaker.refinement import build_refinement_stack
 
-        llm = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
+        llm = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
         stack = build_refinement_stack(Settings(refinement_backend="local"), llm=llm)
         assert isinstance(stack.reviewer, ReviewerProtocol)
         assert isinstance(stack.refiner, RefinerProtocol)

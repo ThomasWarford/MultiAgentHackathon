@@ -1,7 +1,7 @@
 """End-to-end DAG smoke test.
 
 Builds the full LangGraph pipeline against the real papers/ corpus, mocks
-the Anthropic client so no network calls happen, runs the graph, and asserts
+the OpenAI client so no network calls happen, runs the graph, and asserts
 every stage emitted a well-formed artifact.
 
 The refinement backend is "mock" — that avoids exercising the LocalLLM
@@ -27,7 +27,7 @@ from matchmaker.agents.hypotheses import (
     _HypothesesOutput,
     _HypothesisDraft,
 )
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.config import Settings
 from matchmaker.ingestion import LocalCorpusSource
 from matchmaker.orchestrator import GraphContext, build_graph
@@ -49,7 +49,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-class _MockedAnthropicClient(AnthropicClient):
+class _MockedOpenAIClient(OpenAIClient):
     """Returns canned response_model instances; never touches the network."""
 
     def __init__(self) -> None:  # noqa: D401 — intentional override
@@ -139,7 +139,7 @@ async def test_end_to_end_pipeline(tmp_path: Path) -> None:
 
     outputs_dir = tmp_path / "outputs"
     settings = Settings(refinement_backend="mock", max_iterations=2)
-    llm = _MockedAnthropicClient()
+    llm = _MockedOpenAIClient()
     stack = build_refinement_stack(settings, llm=llm)
     source = LocalCorpusSource(PAPERS_DIR)
 

@@ -15,7 +15,7 @@ from itertools import product
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.logging import get_logger
 from matchmaker.prompts import render
 from matchmaker.schemas import (
@@ -64,7 +64,7 @@ def _summary_by_dim(summaries: list[DimensionalSummary]) -> dict[Dim, Dimensiona
 
 
 class CrossFactorialAgent:
-    def __init__(self, llm: AnthropicClient, model: str) -> None:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
 

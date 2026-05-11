@@ -1,7 +1,7 @@
 """LocalLLM-backed implementations of the refinement Protocols.
 
 Drop-in default for development before Denario lands. Each class wraps an
-AnthropicClient.structured(...) call with the appropriate prompt template
+OpenAIClient.structured(...) call with the appropriate prompt template
 and post-processes the result back into the canonical schema shapes.
 
 These satisfy the Protocols in `protocols.py` — the contract test in
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.logging import get_logger
 from matchmaker.prompts import render
 from matchmaker.schemas import (
@@ -116,9 +116,9 @@ def _format_hypothesis(h: RefinedHypothesis | Hypothesis) -> str:
 
 
 class LocalLLMReviewer:
-    reviewer_id: str = "local-claude"
+    reviewer_id: str = "local-openai"
 
-    def __init__(self, llm: AnthropicClient, model: str) -> None:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
 
@@ -172,9 +172,9 @@ class LocalLLMReviewer:
 
 
 class LocalLLMRefiner:
-    refiner_id: str = "local-claude"
+    refiner_id: str = "local-openai"
 
-    def __init__(self, llm: AnthropicClient, model: str) -> None:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
 
@@ -237,9 +237,9 @@ class LocalLLMRefiner:
 
 
 class LocalLLMRanker:
-    ranker_id: str = "local-claude"
+    ranker_id: str = "local-openai"
 
-    def __init__(self, llm: AnthropicClient, model: str) -> None:
+    def __init__(self, llm: OpenAIClient, model: str) -> None:
         self._llm = llm
         self._model = model
 

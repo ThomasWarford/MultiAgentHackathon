@@ -13,7 +13,7 @@ from pathlib import Path
 
 from langgraph.graph import END, START, StateGraph
 
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.config import Settings
 from matchmaker.ingestion import Source
 from matchmaker.orchestrator.nodes import (
@@ -37,7 +37,7 @@ class GraphContext:
     """Resources every node closes over. Built once per run."""
 
     settings: Settings
-    llm: AnthropicClient
+    llm: OpenAIClient
     source: Source
     stack: RefinementStack
     researcher_a_id: str

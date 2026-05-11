@@ -15,7 +15,7 @@ from typing import Optional
 import typer
 
 from matchmaker import __version__
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.config import load_settings
 from matchmaker.ingestion import LocalCorpusSource
 from matchmaker.io import render_final_report, write_artifact
@@ -49,7 +49,7 @@ def doctor() -> None:
         refinement_backend=settings.refinement_backend,
         cost_ceiling_usd=settings.cost_ceiling_usd,
         max_iterations=settings.max_iterations,
-        anthropic_configured=bool(settings.anthropic_api_key),
+        openai_configured=bool(settings.openai_api_key),
         denario_configured=bool(settings.denario_base_url and settings.denario_api_key),
     )
 
@@ -101,20 +101,20 @@ async def _run_async(
     source = LocalCorpusSource(effective_papers_dir)
 
     if settings.refinement_backend in {"mock"}:
-        llm: AnthropicClient | None = None
+        llm: OpenAIClient | None = None
     else:
-        llm = AnthropicClient(
-            api_key=settings.anthropic_api_key,
+        llm = OpenAIClient(
+            api_key=settings.openai_api_key,
             cost_ceiling_usd=settings.cost_ceiling_usd,
         )
 
     # Stages 1-6 always need an LLM (unless backend is "mock" AND we also mock those).
-    # In MVP the routing portion is real Claude; only refinement is swappable.
+    # In MVP the routing portion is real OpenAI; only refinement is swappable.
     if llm is None and settings.refinement_backend == "mock":
-        # For mock-only end-to-end runs you must still supply an Anthropic key
+        # For mock-only end-to-end runs you must still supply an OpenAI key
         # for the upstream agents. Raise loudly so this isn't a silent surprise.
-        llm = AnthropicClient(
-            api_key=settings.anthropic_api_key,
+        llm = OpenAIClient(
+            api_key=settings.openai_api_key,
             cost_ceiling_usd=settings.cost_ceiling_usd,
         )
 

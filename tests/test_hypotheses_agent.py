@@ -69,7 +69,7 @@ async def test_converts_cell_refs_to_tuples() -> None:
         ]
     )
     llm = _FakeLLM(response)
-    agent = HypothesesAgent(llm=llm, model="claude-opus-4-7")  # type: ignore[arg-type]
+    agent = HypothesesAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
     out = await agent.run(
         background_a=ResearcherBackground(researcher_id="alice", narrative="A bg", keywords=[]),
@@ -92,7 +92,7 @@ async def test_converts_cell_refs_to_tuples() -> None:
 async def test_prompt_includes_matrix_cells_and_blockers() -> None:
     response = _HypothesesOutput(hypotheses=[])
     llm = _FakeLLM(response)
-    agent = HypothesesAgent(llm=llm, model="claude-opus-4-7")  # type: ignore[arg-type]
+    agent = HypothesesAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
     await agent.run(
         background_a=ResearcherBackground(

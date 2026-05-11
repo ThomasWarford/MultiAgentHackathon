@@ -84,8 +84,27 @@ cp .env.example .env
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | Your OpenAI API key |
-| `ANTHROPIC_API_KEY` | Your Anthropic API key |
+| `OPENAI_API_KEY` | Your OpenAI API key (required for stages 1-6 and the `local` refinement backend) |
+| `DENARIO_BASE_URL` / `DENARIO_API_KEY` | Only required when `MATCHMAKER_REFINEMENT_BACKEND=denario` (stages 7-8) |
+
+### Model selection
+
+All stages share a priced model catalogue defined in `src/matchmaker/agents/llm.py`
+(`MODEL_PRICING`). Defaults in `src/matchmaker/config.py` are set to the cheap tier
+(`gpt-4o-mini`) across every stage so iterative test runs stay inexpensive:
+
+| Setting | Stage | Default (cheap) | Suggested upgrade (quality) |
+|---------|-------|-----------------|------------------------------|
+| `model_background` | 2 — researcher synthesis | `gpt-4o-mini` | `gpt-4o` |
+| `model_extraction` | 3 — methods/questions/stakes | `gpt-4o-mini` | `gpt-4o-mini` (high volume; keep cheap) |
+| `model_cross_factorial` | 4 — 9-cell matrix | `gpt-4o-mini` | `gpt-4o-mini` (9 calls; keep cheap) |
+| `model_hypotheses` | 6 — hypothesis synthesis | `gpt-4o-mini` | `gpt-4o` |
+| `model_refinement` | 7 — review + refine loop | `gpt-4o-mini` | `gpt-4o` |
+| `model_ranking` | 8 — final ranking | `gpt-4o-mini` | `gpt-4o` or `o1` |
+
+Override per-stage by editing `Settings` in `config.py`. The cost ceiling
+(`MATCHMAKER_COST_CEILING_USD`, default `$5.00`) is enforced before every
+LLM call by `OpenAIClient`, so a runaway loop terminates predictably.
 
 ### Running the Project
 

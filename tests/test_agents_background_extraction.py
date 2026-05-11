@@ -1,6 +1,6 @@
 """Background + extraction agent unit tests.
 
-Mock the AnthropicClient so we exercise the prompt-rendering and
+Mock the OpenAIClient so we exercise the prompt-rendering and
 output-binding paths without network. The LLM client itself is covered in
 test_llm_client.py.
 """
@@ -69,7 +69,7 @@ class TestResearcherBackgroundAgent:
                 )
             ]
         )
-        agent = ResearcherBackgroundAgent(llm=llm, model="claude-haiku-4-5-20251001")  # type: ignore[arg-type]
+        agent = ResearcherBackgroundAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
         out = await agent.run(_profile())
         assert isinstance(out, ResearcherBackground)
         assert out.researcher_id == "ada"
@@ -101,7 +101,7 @@ class TestDimensionalExtractor:
         )
         agent = DimensionalExtractor(
             llm=llm,  # type: ignore[arg-type]
-            model="claude-haiku-4-5-20251001",
+            model="gpt-4o-mini",
             dimension=dim,
         )
         profile = _profile()

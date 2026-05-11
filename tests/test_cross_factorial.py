@@ -72,7 +72,7 @@ class _FakeLLM:
 class TestCrossFactorialAgent:
     async def test_produces_9_cells_with_full_coverage(self) -> None:
         llm = _FakeLLM()
-        agent = CrossFactorialAgent(llm=llm, model="claude-haiku-4-5-20251001")  # type: ignore[arg-type]
+        agent = CrossFactorialAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
         profile_a = _profile("alice")
         profile_b = _profile("bob")
@@ -92,7 +92,7 @@ class TestCrossFactorialAgent:
 
     async def test_raises_if_summaries_missing_a_dimension(self) -> None:
         llm = _FakeLLM()
-        agent = CrossFactorialAgent(llm=llm, model="claude-haiku-4-5-20251001")  # type: ignore[arg-type]
+        agent = CrossFactorialAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
         profile_a = _profile("alice")
         profile_b = _profile("bob")
@@ -105,7 +105,7 @@ class TestCrossFactorialAgent:
 
     async def test_get_returns_per_coordinate_cell(self) -> None:
         llm = _FakeLLM()
-        agent = CrossFactorialAgent(llm=llm, model="claude-haiku-4-5-20251001")  # type: ignore[arg-type]
+        agent = CrossFactorialAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
         matrix = await agent.run(
             _profile("alice"),
@@ -121,7 +121,7 @@ class TestCrossFactorialAgent:
 class TestPromptRendering:
     async def test_prompt_includes_both_dims_and_display_names(self) -> None:
         llm = _FakeLLM()
-        agent = CrossFactorialAgent(llm=llm, model="claude-haiku-4-5-20251001")  # type: ignore[arg-type]
+        agent = CrossFactorialAgent(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
 
         await agent.run(
             _profile("alice"),

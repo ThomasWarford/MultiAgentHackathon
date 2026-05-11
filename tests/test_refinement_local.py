@@ -55,21 +55,21 @@ def _hyp() -> Hypothesis:
 
 class TestProtocolConformance:
     def test_reviewer_satisfies_protocol(self) -> None:
-        from matchmaker.agents.llm import AnthropicClient
+        from matchmaker.agents.llm import OpenAIClient
 
-        c = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
+        c = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
         assert isinstance(LocalLLMReviewer(c, "x"), ReviewerProtocol)
 
     def test_refiner_satisfies_protocol(self) -> None:
-        from matchmaker.agents.llm import AnthropicClient
+        from matchmaker.agents.llm import OpenAIClient
 
-        c = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
+        c = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
         assert isinstance(LocalLLMRefiner(c, "x"), RefinerProtocol)
 
     def test_ranker_satisfies_protocol(self) -> None:
-        from matchmaker.agents.llm import AnthropicClient
+        from matchmaker.agents.llm import OpenAIClient
 
-        c = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
+        c = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
         assert isinstance(LocalLLMRanker(c, "x"), RankerProtocol)
 
 
@@ -85,12 +85,12 @@ class TestReviewer:
                 )
             ]
         )
-        rev = LocalLLMReviewer(llm=llm, model="claude-opus-4-7")  # type: ignore[arg-type]
+        rev = LocalLLMReviewer(llm=llm, model="gpt-4o-mini")  # type: ignore[arg-type]
         h = _hyp()
         out = await rev.review(h, CritiqueHistory(hypothesis_id="h1"))
         assert out.hypothesis_id == "h1"
         assert out.iteration == 0
-        assert out.reviewer_id == "local-claude"
+        assert out.reviewer_id == "local-openai"
         assert out.severity == "suggest"
         assert out.suggested_revisions == ["name the dataset"]
 
@@ -110,7 +110,7 @@ class TestReviewer:
             hypothesis_id="h1",
             iteration=0,
             severity="suggest",
-            reviewer_id="local-claude",
+            reviewer_id="local-openai",
             suggested_revisions=["foo"],
         )
         out = await rev.review(
@@ -141,7 +141,7 @@ class TestRefiner:
             hypothesis_id="h1",
             iteration=0,
             severity="suggest",
-            reviewer_id="local-claude",
+            reviewer_id="local-openai",
             suggested_revisions=["tighten"],
         )
         refined = await ref.refine(
@@ -160,7 +160,7 @@ class TestRanker:
         ranker = LocalLLMRanker(llm=llm, model="x")  # type: ignore[arg-type]
         out = await ranker.rank([])
         assert out.items == []
-        assert out.ranker_id == "local-claude"
+        assert out.ranker_id == "local-openai"
 
     async def test_rank_returns_ordered_list(self) -> None:
         llm = _FakeLLM(

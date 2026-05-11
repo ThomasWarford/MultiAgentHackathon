@@ -12,7 +12,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from matchmaker.agents._corpus import format_publications_block
-from matchmaker.agents.llm import AnthropicClient
+from matchmaker.agents.llm import OpenAIClient
 from matchmaker.logging import get_logger
 from matchmaker.prompts import render
 from matchmaker.schemas import (
@@ -42,7 +42,7 @@ class _ItemsOutput(BaseModel):
 
 
 class DimensionalExtractor:
-    def __init__(self, llm: AnthropicClient, model: str, dimension: Dim) -> None:
+    def __init__(self, llm: OpenAIClient, model: str, dimension: Dim) -> None:
         self._llm = llm
         self._model = model
         self._dim: Dim = dimension
