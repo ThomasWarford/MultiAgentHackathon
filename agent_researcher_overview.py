@@ -72,7 +72,7 @@ def make_section_agent(
     system_prompt: str,
     model: str = "gpt-5.4",
 ) -> Callable[[ResearcherState], dict]:
-    llm = ChatOpenAI(model=model, temperature=0)
+    llm = ChatOpenAI(model=model, temperature=1)
 
     def node(state: ResearcherState) -> dict:
         context_block = (

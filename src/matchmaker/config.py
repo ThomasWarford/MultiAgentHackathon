@@ -41,12 +41,12 @@ class Settings(BaseSettings):
     #   - hypotheses: 1-2 calls — creative synthesis requiring nuance.
     #   - refinement: variable (review + refine loops) — adversarial critique.
     #   - ranking: 1 call — comparative scoring across candidates.
-    model_background: str = "gpt-4o-mini"
+    model_background: str = "gpt-5.4-nano"
     model_extraction: str = "gpt-4o-mini"
     model_cross_factorial: str = "gpt-5.5"
-    model_hypotheses: str = "gpt-5.5"
+    model_hypotheses: str = "gpt-5.4-mini"
     model_refinement: str = "gpt-5.5"
-    model_ranking: str = "gpt-5.5"
+    model_ranking: str = "gpt-5.4-mini"
 
     cost_ceiling_usd: float = 5.0
     max_iterations: int = 3

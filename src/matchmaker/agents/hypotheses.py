@@ -159,7 +159,7 @@ class HypothesisFilterAgent:
                 f"{_format_hypotheses_for_filter(hypotheses)}"
             ),
             response_model=_HypothesisFilterOutput,
-            temperature=0.0,
+            temperature=1.0,
             max_tokens=2048,
         )
 

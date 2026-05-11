@@ -74,7 +74,7 @@ class RankingAgent:
             system="You are a ranking agent that scores research hypotheses by rigor, novelty, and feasibility.",
             user=prompt,
             response_model=_RankingOutput,
-            temperature=0.2,
+            temperature=1.0,
             max_tokens=3072,
         )
         items = [
