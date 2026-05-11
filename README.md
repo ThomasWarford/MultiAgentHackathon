@@ -57,8 +57,8 @@ cp .env.example .env
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | Your OpenAI API key (required for stages 1-6 and the `local` refinement backend) |
-| `DENARIO_BASE_URL` / `DENARIO_API_KEY` | Only required when `MATCHMAKER_REFINEMENT_BACKEND=denario` (stages 7-8) |
+| `OPENAI_API_KEY` | Required for all LLM stages |
+| `DENARIO_BASE_URL` / `DENARIO_API_KEY` | Only needed when `MATCHMAKER_REFINEMENT_BACKEND=denario` |
 
 ### Model selection
 
