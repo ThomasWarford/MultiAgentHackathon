@@ -7,8 +7,10 @@ add a branch here + a module that satisfies the Protocols.
 
 from __future__ import annotations
 
+from matchmaker.agents.llm import AnthropicClient
 from matchmaker.config import Settings
 from matchmaker.refinement.denario import DenarioRanker, DenarioRefiner, DenarioReviewer
+from matchmaker.refinement.local import LocalLLMRanker, LocalLLMRefiner, LocalLLMReviewer
 from matchmaker.refinement.mocks import MockRanker, MockRefiner, MockReviewer
 from matchmaker.refinement.protocols import (
     RankerProtocol,
@@ -29,18 +31,33 @@ class RefinementStack:
         self.ranker = ranker
 
 
-def build_refinement_stack(settings: Settings) -> RefinementStack:
+def build_refinement_stack(
+    settings: Settings,
+    *,
+    llm: AnthropicClient | None = None,
+) -> RefinementStack:
+    """Build the refinement triple matching `settings.refinement_backend`.
+
+    `llm` is required when backend == "local" (LocalLLM* implementations need
+    a shared AnthropicClient for cost tracking). It is ignored otherwise.
+    """
     backend = settings.refinement_backend
     if backend == "mock":
         return RefinementStack(MockReviewer(), MockRefiner(), MockRanker())
+    if backend == "local":
+        if llm is None:
+            raise ValueError(
+                "refinement_backend='local' requires an AnthropicClient via the `llm` arg."
+            )
+        return RefinementStack(
+            LocalLLMReviewer(llm, settings.model_refinement),
+            LocalLLMRefiner(llm, settings.model_refinement),
+            LocalLLMRanker(llm, settings.model_ranking),
+        )
     if backend == "denario":
         return RefinementStack(
             DenarioReviewer(settings.denario_base_url, settings.denario_api_key),
             DenarioRefiner(settings.denario_base_url, settings.denario_api_key),
             DenarioRanker(settings.denario_base_url, settings.denario_api_key),
-        )
-    if backend == "local":
-        raise NotImplementedError(
-            "LocalLLM refinement backend lands in step 10; use 'mock' until then."
         )
     raise ValueError(f"Unknown refinement backend: {backend!r}")

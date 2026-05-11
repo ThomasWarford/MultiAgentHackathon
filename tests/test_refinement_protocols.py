@@ -136,12 +136,23 @@ class TestFactory:
         assert isinstance(stack.refiner, RefinerProtocol)
         assert isinstance(stack.ranker, RankerProtocol)
 
-    def test_local_backend_raises_not_implemented(self) -> None:
+    def test_local_backend_requires_llm(self) -> None:
         from matchmaker.config import Settings
         from matchmaker.refinement import build_refinement_stack
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError, match="AnthropicClient"):
             build_refinement_stack(Settings(refinement_backend="local"))
+
+    def test_local_backend_builds_stack_with_llm(self) -> None:
+        from matchmaker.agents.llm import AnthropicClient
+        from matchmaker.config import Settings
+        from matchmaker.refinement import build_refinement_stack
+
+        llm = AnthropicClient(api_key="dummy", cost_ceiling_usd=1.0)
+        stack = build_refinement_stack(Settings(refinement_backend="local"), llm=llm)
+        assert isinstance(stack.reviewer, ReviewerProtocol)
+        assert isinstance(stack.refiner, RefinerProtocol)
+        assert isinstance(stack.ranker, RankerProtocol)
 
     def test_denario_backend_builds_stack(self) -> None:
         from matchmaker.config import Settings
