@@ -7,10 +7,11 @@ add a branch here + a module that satisfies the Protocols.
 
 from __future__ import annotations
 
+from matchmaker.agents.ranking import RankingAgent
 from matchmaker.agents.llm import OpenAIClient
 from matchmaker.config import Settings
 from matchmaker.refinement.denario import DenarioRanker, DenarioRefiner, DenarioReviewer
-from matchmaker.refinement.local import LocalLLMRanker, LocalLLMRefiner, LocalLLMReviewer
+from matchmaker.refinement.local import LocalLLMRefiner, LocalLLMReviewer
 from matchmaker.refinement.mocks import MockRanker, MockRefiner, MockReviewer
 from matchmaker.refinement.protocols import (
     RankerProtocol,
@@ -52,7 +53,7 @@ def build_refinement_stack(
         return RefinementStack(
             LocalLLMReviewer(llm, settings.model_refinement),
             LocalLLMRefiner(llm, settings.model_refinement),
-            LocalLLMRanker(llm, settings.model_ranking),
+            RankingAgent(llm, settings.model_ranking),
         )
     if backend == "denario":
         return RefinementStack(
