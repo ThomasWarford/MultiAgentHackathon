@@ -8,14 +8,18 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
+from matchmaker.agents.ranking import (
+    _DimensionScoresOutput,
+    _RankedItemOutput,
+    _RankingOutput,
+    RankingAgent,
+)
 from matchmaker.refinement.local import (
     LocalLLMRanker,
     LocalLLMRefiner,
     LocalLLMReviewer,
     _CellRef,
     _CritiqueOutput,
-    _RankedItemOutput,
-    _RankingOutput,
     _RefinedOutput,
 )
 from matchmaker.refinement.protocols import (
@@ -70,6 +74,7 @@ class TestProtocolConformance:
         from matchmaker.agents.llm import OpenAIClient
 
         c = OpenAIClient(api_key="dummy", cost_ceiling_usd=1.0)
+        assert isinstance(RankingAgent(c, "x"), RankerProtocol)
         assert isinstance(LocalLLMRanker(c, "x"), RankerProtocol)
 
 
@@ -171,14 +176,26 @@ class TestRanker:
                             hypothesis_id="h2",
                             rank=1,
                             composite_score=0.9,
-                            dimension_scores={"novelty": 0.95, "feasibility": 0.85},
+                            dimension_scores=_DimensionScoresOutput(
+                                novelty=0.95,
+                                feasibility=0.85,
+                                falsifiability=0.9,
+                                stake_alignment=0.8,
+                                evidence_grounding=0.75,
+                            ),
                             justification="strong on both.",
                         ),
                         _RankedItemOutput(
                             hypothesis_id="h1",
                             rank=2,
                             composite_score=0.6,
-                            dimension_scores={"novelty": 0.5, "feasibility": 0.7},
+                            dimension_scores=_DimensionScoresOutput(
+                                novelty=0.5,
+                                feasibility=0.7,
+                                falsifiability=0.6,
+                                stake_alignment=0.55,
+                                evidence_grounding=0.65,
+                            ),
                             justification="weaker novelty.",
                         ),
                     ],

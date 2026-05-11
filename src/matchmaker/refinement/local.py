@@ -13,6 +13,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from matchmaker.agents.llm import OpenAIClient
+from matchmaker.agents.ranking import RankingAgent
 from matchmaker.logging import get_logger
 from matchmaker.prompts import render
 from matchmaker.schemas import (
@@ -21,8 +22,6 @@ from matchmaker.schemas import (
     CritiqueSeverity,
     Dim,
     Hypothesis,
-    RankedHypothesis,
-    Ranking,
     RefinedHypothesis,
 )
 
@@ -55,21 +54,6 @@ class _RefinedOutput(BaseModel):
     addresses_prompts: list[str]
     confidence: float = Field(ge=0.0, le=1.0)
     revision_notes: str
-
-
-class _RankedItemOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    hypothesis_id: str
-    rank: int = Field(ge=1)
-    composite_score: float = Field(ge=0.0, le=1.0)
-    dimension_scores: dict[str, float]
-    justification: str
-
-
-class _RankingOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    items: list[_RankedItemOutput]
-    methodology: str
 
 
 # ---------------- Helpers ----------------
@@ -236,37 +220,5 @@ class LocalLLMRefiner:
 # ---------------- Ranker ----------------
 
 
-class LocalLLMRanker:
-    ranker_id: str = "local-openai"
-
-    def __init__(self, llm: OpenAIClient, model: str) -> None:
-        self._llm = llm
-        self._model = model
-
-    async def rank(self, hypotheses: list[RefinedHypothesis]) -> Ranking:
-        if not hypotheses:
-            return Ranking(items=[], methodology="No hypotheses to rank.", ranker_id=self.ranker_id)
-
-        block = "\n\n".join(_format_hypothesis(h) for h in hypotheses)
-        prompt = render("ranker", hypotheses_block=block)
-        log.info("agent.ranker.start", n_hypotheses=len(hypotheses))
-        out = await self._llm.structured(
-            model=self._model,
-            system="You rank research hypotheses by rigor, novelty, and feasibility.",
-            user=prompt,
-            response_model=_RankingOutput,
-            temperature=0.2,
-            max_tokens=3072,
-        )
-        items = [
-            RankedHypothesis(
-                hypothesis_id=item.hypothesis_id,
-                rank=item.rank,
-                composite_score=item.composite_score,
-                dimension_scores=item.dimension_scores,
-                justification=item.justification,
-            )
-            for item in out.items
-        ]
-        log.info("agent.ranker.done", n_ranked=len(items))
-        return Ranking(items=items, methodology=out.methodology, ranker_id=self.ranker_id)
+class LocalLLMRanker(RankingAgent):
+    """Compatibility wrapper for the OpenAI-backed ranking agent."""
