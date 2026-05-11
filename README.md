@@ -90,17 +90,17 @@ cp .env.example .env
 ### Model selection
 
 All stages share a priced model catalogue defined in `src/matchmaker/agents/llm.py`
-(`MODEL_PRICING`). Defaults in `src/matchmaker/config.py` are set to the cheap tier
-(`gpt-4o-mini`) across every stage so iterative test runs stay inexpensive:
+(`MODEL_PRICING`). Defaults in `src/matchmaker/config.py` are set to
+`gpt-5.5` across every stage:
 
-| Setting | Stage | Default (cheap) | Suggested upgrade (quality) |
-|---------|-------|-----------------|------------------------------|
-| `model_background` | 2 — researcher synthesis | `gpt-4o-mini` | `gpt-4o` |
-| `model_extraction` | 3 — methods/questions/stakes | `gpt-4o-mini` | `gpt-4o-mini` (high volume; keep cheap) |
-| `model_cross_factorial` | 4 — 9-cell matrix | `gpt-4o-mini` | `gpt-4o-mini` (9 calls; keep cheap) |
-| `model_hypotheses` | 6 — hypothesis synthesis | `gpt-4o-mini` | `gpt-4o` |
-| `model_refinement` | 7 — review + refine loop | `gpt-4o-mini` | `gpt-4o` |
-| `model_ranking` | 8 — final ranking | `gpt-4o-mini` | `gpt-4o` or `o1` |
+| Setting | Stage | Default | Suggested upgrade (quality) |
+|---------|-------|---------|------------------------------|
+| `model_background` | 2 — researcher synthesis | `gpt-5.5` | `gpt-4o` |
+| `model_extraction` | 3 — methods/questions/stakes | `gpt-5.5` | `gpt-5.5` (high volume; keep cheap) |
+| `model_cross_factorial` | 4 — 9-cell matrix | `gpt-5.5` | `gpt-5.5` (9 calls; keep cheap) |
+| `model_hypotheses` | 6 — hypothesis synthesis | `gpt-5.5` | `gpt-4o` |
+| `model_refinement` | 7 — review + refine loop | `gpt-5.5` | `gpt-4o` |
+| `model_ranking` | 8 — final ranking | `gpt-5.5` | `gpt-4o` or `o1` |
 
 Override per-stage by editing `Settings` in `config.py`. The cost ceiling
 (`MATCHMAKER_COST_CEILING_USD`, default `$5.00`) is enforced before every

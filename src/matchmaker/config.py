@@ -1,7 +1,7 @@
 """Runtime configuration.
 
 Everything here is overridable by environment variables prefixed with
-MATCHMAKER_ (see .env.example). The Settings object is loaded once at startup
+MATCHMAKER_ (see .env). The Settings object is loaded once at startup
 and threaded through the orchestrator state — no module-level singletons.
 """
 
@@ -37,12 +37,12 @@ class Settings(BaseSettings):
     #     (the matrix alone is 9 calls), keep on the cheap tier.
     #   - hypotheses / refinement / ranking: lower volume, higher leverage —
     #     candidates for "gpt-4o" once the pipeline is stable.
-    model_background: str = "gpt-4o-mini"
-    model_extraction: str = "gpt-4o-mini"
-    model_cross_factorial: str = "gpt-4o-mini"
-    model_hypotheses: str = "gpt-4o-mini"
-    model_refinement: str = "gpt-4o-mini"
-    model_ranking: str = "gpt-4o-mini"
+    model_background: str = "gpt-5.5"
+    model_extraction: str = "gpt-5.5"
+    model_cross_factorial: str = "gpt-5.5"
+    model_hypotheses: str = "gpt-5.5"
+    model_refinement: str = "gpt-5.5"
+    model_ranking: str = "gpt-5.5"
 
     cost_ceiling_usd: float = 5.0
     max_iterations: int = 3

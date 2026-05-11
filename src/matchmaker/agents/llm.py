@@ -31,6 +31,9 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     # Cheap tier — use for development, testing, bulk fan-out (e.g. the 9-cell
     # cross-factorial matrix).
     "gpt-4o-mini": (0.15, 0.60),
+    # Current default across all stages. Pricing is a placeholder — confirm
+    # against OpenAI's published rates before relying on cost-ceiling math.
+    "gpt-5.5": (0.15, 0.60),
     # Mid/high tier — use for the synthesis & refinement stages once you trust
     # the pipeline and want better reasoning quality.
     "gpt-4o": (2.50, 10.00),
