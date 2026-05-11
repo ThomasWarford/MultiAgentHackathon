@@ -9,6 +9,17 @@ An agentic workflow that connects two (or more) researchers and finds good topic
 - Get around the jargon that makes finding common ground difficult.
 - Extract open questions: answer with LLM and find other researchers who can help.
 ---
+## Design
+- Publication scraper
+- Papers -> summary
+- Look for open questions
+
+### Wishlist
+- Go through references
+- Multiple researchers (by department, ect.)
+- Conversation recordings
+- Researcher prompts
+
 
 ## 🏗️ Architecture
 
