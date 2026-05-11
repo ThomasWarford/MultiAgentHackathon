@@ -152,6 +152,6 @@ class CrossFactorialAgent:
             ),
             user=prompt,
             response_model=_CellOutput,
-            temperature=0.0,
-            max_tokens=1024,
+            temperature=1.0,
+            max_tokens=4096,
         )

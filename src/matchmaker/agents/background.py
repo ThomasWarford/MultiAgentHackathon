@@ -48,7 +48,7 @@ class ResearcherBackgroundAgent:
             system="You produce faithful, specific, evidence-grounded research syntheses.",
             user=prompt,
             response_model=_BackgroundOutput,
-            temperature=0.0,
+            temperature=1.0,
             max_tokens=2048,
         )
         background = ResearcherBackground(

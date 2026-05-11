@@ -84,7 +84,7 @@ class OpenAIClient:
         system: str,
         user: str,
         response_model: type[T],
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         max_tokens: int = 4096,
     ) -> T:
         if self.spend.usd >= self._ceiling:

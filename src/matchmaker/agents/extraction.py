@@ -72,7 +72,7 @@ class DimensionalExtractor:
             ),
             user=prompt,
             response_model=_ItemsOutput,
-            temperature=0.0,
+            temperature=1.0,
             max_tokens=3072,
         )
         summary = DimensionalSummary(
