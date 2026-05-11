@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "structlog>=24.0",
     "pymupdf4llm>=0.0.17",
+    "matplotlib>=3.10.9",
 ]
 
 [project.optional-dependencies]
