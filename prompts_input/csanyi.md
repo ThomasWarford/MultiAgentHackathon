@@ -1,7 +1,9 @@
 # Csanyi — Researcher Prompt
 
 ## Current focus
-Developing the MACE family of equivariant machine-learning interatomic potentials (MLIPs) to bring quantum-mechanical accuracy (DFT and beyond — up to CCSD(T) via delta-learning) to condensed-phase and large-scale molecular simulations. Active work spans: long-range electrostatics and self-consistent charge equilibration (MACE-POLAR-1, Thomas et al. 2025), magnetic degrees of freedom (mMACE), solvation free energies of drug-like molecules with MACE-OFF24-SC, thermal transport at lattice-mismatched interfaces, and the engineering side of training foundation models efficiently on >700 GPUs.
+Atomistic simulation, particularly in multi scale modelling that couples quantum mechanics to larger length scales. Also interested in statistical problems in molecular dynamics, e.g. in enhanced sampling algorithms that can be used explore the global configuration space of materials and molecules. 
+
+Developing the MACE family of equivariant machine-learning interatomic potentials (MLIPs) to bring quantum-mechanical accuracy (DFT and beyond — up to CCSD(T) via delta-learning) to condensed-phase and large-scale molecular simulations. Active work spans: long-range electrostatics and self-consistent charge equilibration (MACE-POLAR-1, Thomas et al. 2025), magnetic degrees of freedom (mMACE), solvation free energies of drug-like molecules with MACE-OFF24-SC, thermal transport at lattice-mismatched interfaces, and the engineering side of training foundation models efficiently on >700 GPUs. 
 
 ## Recent milestones
 - MACE-POLAR-1: non-self-consistent field formalism extends MACE to long-range electrostatics, charge transfer, and induction; sub-kcal/mol on molecular crystal formation energies.
