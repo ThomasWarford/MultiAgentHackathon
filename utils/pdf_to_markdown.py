@@ -1,11 +1,6 @@
 import pymupdf4llm
 from pathlib import Path
 
-dirs = [
-    "10papers_csanyi",
-    "10papers_pellegrini",
-]
-
 for d in Path('papers').iterdir():
     for pdf in sorted(d.glob("*.pdf")):
         md_path = pdf.with_suffix(".md")
