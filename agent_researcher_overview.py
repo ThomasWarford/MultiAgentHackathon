@@ -70,7 +70,7 @@ SUMMARY_PROMPT = (
 def make_section_agent(
     section_key: str,
     system_prompt: str,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.4",
 ) -> Callable[[ResearcherState], dict]:
     llm = ChatOpenAI(model=model, temperature=0)
 
